@@ -1,0 +1,6 @@
+{
+    "clangd.arguments": [
+    "--enable-config",
+    "--compile-commands-dir=${workspaceFolder}/build"
+  ],
+}
