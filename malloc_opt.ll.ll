@@ -1,4 +1,4 @@
-; ModuleID = '../malloc.c'
+; ModuleID = '../malloc_opt.ll'
 source_filename = "../malloc.c"
 target datalayout = "e-m:e-i8:8:32-i16:16:32-i64:64-i128:128-n32:64-S128"
 target triple = "aarch64-unknown-linux-gnu"
@@ -13,7 +13,7 @@ define dso_local i32 @main() #0 {
   %1 = alloca i32, align 4
   %2 = alloca i8*, align 8
   store i32 0, i32* %1, align 4
-  %3 = call noalias i8* @malloc(i64 noundef 10) #2
+  %3 = call i8* bitcast (void ()* @my_malloc to i8* (i64)*)(i64 10)
   store i8* %3, i8** %2, align 8
   %4 = load i8*, i8** %2, align 8
   %5 = getelementptr inbounds i8, i8* %4, i64 5
@@ -26,7 +26,6 @@ declare noalias i8* @malloc(i64 noundef) #1
 
 attributes #0 = { noinline nounwind optnone uwtable "frame-pointer"="non-leaf" "min-legal-vector-width"="0" "no-trapping-math"="true" "stack-protector-buffer-size"="8" "target-cpu"="generic" "target-features"="+neon,+outline-atomics,+v8a" }
 attributes #1 = { nounwind "frame-pointer"="non-leaf" "no-trapping-math"="true" "stack-protector-buffer-size"="8" "target-cpu"="generic" "target-features"="+neon,+outline-atomics,+v8a" }
-attributes #2 = { nounwind }
 
 !llvm.module.flags = !{!0, !1, !2, !3, !4, !5, !6, !7, !8}
 !llvm.ident = !{!9}
