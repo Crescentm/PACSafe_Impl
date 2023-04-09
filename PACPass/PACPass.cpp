@@ -32,7 +32,9 @@
 #include "llvm/Transforms/Utils/CtorUtils.h"
 #include "llvm/Transforms/Utils/ModuleUtils.h"
 
+#include <cstddef>
 #include <cstdint>
+#include <llvm-14/llvm/ADT/None.h>
 #include <tuple>
 #include <unordered_map>
 #include <utility>

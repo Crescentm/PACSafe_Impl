@@ -26,6 +26,9 @@ void __attribute__((constructor)) init_memory() {
 void pac_set(void *fptr, unsigned long tag, unsigned int nElements,
              int typeSize) {
   unsigned long offset = GET_OFFSET(fptr) + sizeof(unsigned long) & (SIZE - 1);
+  printf("Set-> point: %p mem: %p offset:%lu tag: %lu\n", fptr, shadow_memory,
+         offset, tag);
+  fflush(stdout);
   metadata *ptr = (metadata *)(((unsigned char *)shadow_memory) + offset);
   ptr->tag = tag;
   ptr->nElements = nElements;
@@ -36,6 +39,9 @@ void pac_set(void *fptr, unsigned long tag, unsigned int nElements,
 metadata *pac_get(void *fptr) {
   unsigned long offset = GET_OFFSET(fptr) + sizeof(unsigned long) & (SIZE - 1);
   metadata *ptr = (metadata *)(((unsigned char *)shadow_memory) + offset);
+  printf("Get-> point: %p mem: %p offset:%lu tag: %lu\n", fptr, shadow_memory,
+         offset, ptr->tag);
+  fflush(stdout);
   return ptr;
 }
 
