@@ -1,3 +1,3 @@
-add_library(mallocPass MODULE
-    mallocPass.cpp
+add_library(PACPass MODULE
+    PACPass.cpp
 )
