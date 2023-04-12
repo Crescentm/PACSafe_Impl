@@ -978,7 +978,7 @@ public:
 
     // Array
     else if (ArrayType *ATy = dyn_cast<ArrayType>(Ty)) {
-      Type *ETy = ATy->getPointerElementType();
+      Type *ETy = ATy->getArrayElementType();
       return shouldProtectType(ETy);
     }
 

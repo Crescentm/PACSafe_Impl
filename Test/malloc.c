@@ -1,13 +1,34 @@
 #include <stdio.h>
-#include <stdlib.h>
+
+typedef struct {
+  int dummy1;
+  volatile int (*coolFunct)();
+  char dummy2;
+} Foo;
+
+typedef struct {
+  volatile Foo *foo;
+  int dummy1;
+  char dumm2;
+} Bar;
+
+int func1() { printf("Hello, world!\n"); }
 
 int main() {
-  char *buf1 = (char *)malloc(sizeof(char) * 100);
+  char doo[10];
+  Foo foo;
+  volatile Bar *bar;
 
-  int ptr_offset = 0;
-  printf(" %p\n", (void *)buf1);
-  scanf(" %d", &ptr_offset);
-  buf1[ptr_offset] = 'A';
+  bar = (Bar *)malloc(sizeof(Bar));
 
+  bar->foo = &foo;
+  bar->foo->coolFunct = func1;
+
+  doo[3] = 'A';
+
+  bar->foo->coolFunct();
+  func1();
+
+  free(bar);
   return 0;
 }
