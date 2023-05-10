@@ -1,11 +1,8 @@
 #include "libpac.h"
 #define bitGet(value) (value >> 48)
-
 unsigned long randomTag() { return (unsigned long)rand(); }
 
 void addPAC(void **p) {
-  // fprintf(stdout, "add: Pointer->%p\n", *p);
-  // fflush(stdout);
   if (bitGet((unsigned long long)*p)) {
     return;
   }
@@ -18,8 +15,10 @@ void addPAC(void **p) {
     pac_set(*p, tag, 1, 8);
   }
   unsigned long mod = tag ^ (unsigned long)p;
+#ifdef debug
   printf("PACAdd-> Pointer: %p mod: %lu tag: %lu\n", *p, mod, tag);
   fflush(stdout);
+#endif
   __asm volatile("pacda %x[pointer], %x[modifier]\n"
                  : [pointer] "+r"(*p)
                  : [modifier] "r"(mod));
@@ -37,8 +36,11 @@ void addPAC(void **p) {
 }
 
 void authPAC(void **p, unsigned int n) {
-  // fprintf(stdout, "auth: Pointer->%p\n", *p);
-  // fflush(stdout);
+#ifdef debug
+  printf("-------AuthPAC S--------\n");
+  printf("PACAut-> Pointer: %p \n", *p);
+  fflush(stdout);
+#endif
   if (!bitGet((unsigned long long)*p)) {
     return;
   }
@@ -47,8 +49,11 @@ void authPAC(void **p, unsigned int n) {
   metadata *meta = pac_get(((char *)*p + n));
   unsigned long tag = meta->tag;
   unsigned long mod = meta->tag ^ (unsigned long)p;
+#ifdef debug
   printf("PACAut-> Pointer: %p mod: %lu tag: %lu\n", *p, mod, tag);
+  printf("-------AuthPAC E--------\n");
   fflush(stdout);
+#endif
   __asm volatile("autda %x[pointer], %x[modifier]\n"
                  : [pointer] "+r"(*p)
                  : [modifier] "r"(mod));
@@ -67,8 +72,10 @@ void authPAC(void **p, unsigned int n) {
 
 // Function that inserts metadata into the hashtable.
 void setMetadata(void *p, unsigned int nElements, int typeSize) {
+#ifdef debug
   printf("SetM: Pointer %p E %u S %d\n", p, nElements, typeSize);
   fflush(stdout);
+#endif
 #ifdef PAC
   if (metadataExists(p)) {
     return;
@@ -82,8 +89,10 @@ void setMetadata(void *p, unsigned int nElements, int typeSize) {
 // Function that inserts metadata into the hashtable (p is the pointer of
 // pointer).
 void setMetadataObj(void **p, unsigned int nElements, int typeSize) {
+#ifdef debug
   printf("SetMO-> Pointer: %p E: %u S: %d\n", *p, nElements, typeSize);
   fflush(stdout);
+#endif
 #ifdef PAC
   if (metadataExists(*p)) {
     return;
@@ -104,6 +113,10 @@ void removeMetadata(void **p) {
   unsigned nElements = meta->nElements;
   unsigned typeSize = meta->typeSize;
   for (int i = 0; i < nElements; i++) {
+#ifdef debug
+    printf("removeMetadata-> Pointer: %p\n", *p);
+    fflush(stdout);
+#endif
     pac_remove(*p);
     (*p) = (char *)(*p) + typeSize;
   }
@@ -143,6 +156,7 @@ bool metadataExists(void *p) {
     return true;
   }
 #endif
+  return true;
 }
 
 // Function that replaces pointer with already PACed pointer

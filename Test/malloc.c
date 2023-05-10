@@ -1,34 +1,26 @@
 #include <stdio.h>
-
-typedef struct {
-  int dummy1;
-  volatile int (*coolFunct)();
-  char dummy2;
-} Foo;
-
-typedef struct {
-  volatile Foo *foo;
-  int dummy1;
-  char dumm2;
-} Bar;
-
-int func1() { printf("Hello, world!\n"); }
+#include <stdlib.h>
+#include <string.h>
+void printLine(const char *line) {
+  if (line != NULL) {
+    printf("%s\n", line);
+  }
+}
 
 int main() {
-  char doo[10];
-  Foo foo;
-  volatile Bar *bar;
+  char *data;
+  /* Initialize data */
+  data = NULL;
+  data = (char *)malloc(100 * sizeof(char));
+  if (data == NULL) {
+    exit(-1);
+  }
+  memset(data, 'A', 100 - 1);
+  data[100 - 1] = '\0';
+  /* POTENTIAL FLAW: Free data in the source - the bad sink attempts to use
+   * data */
+  free(data);
 
-  bar = (Bar *)malloc(sizeof(Bar));
-
-  bar->foo = &foo;
-  bar->foo->coolFunct = func1;
-
-  doo[3] = 'A';
-
-  bar->foo->coolFunct();
-  func1();
-
-  free(bar);
+  printf("%s", data);
   return 0;
 }

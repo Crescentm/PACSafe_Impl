@@ -17,6 +17,7 @@
 #include "llvm/IR/InstVisitor.h"
 #include "llvm/IR/Instruction.h"
 #include "llvm/IR/IntrinsicInst.h"
+#include "llvm/IR/LegacyPassManager.h"
 #include "llvm/IR/Module.h"
 #include "llvm/IR/Type.h"
 #include "llvm/IR/TypeFinder.h"
@@ -24,8 +25,11 @@
 #include "llvm/IR/ValueSymbolTable.h"
 #include "llvm/InitializePasses.h"
 #include "llvm/Pass.h"
+#include "llvm/Passes/PassBuilder.h"
+#include "llvm/Passes/PassPlugin.h"
 #include "llvm/Support/raw_ostream.h"
 #include "llvm/Transforms/IPO.h"
+#include "llvm/Transforms/IPO/PassManagerBuilder.h"
 #include "llvm/Transforms/Instrumentation.h"
 #include "llvm/Transforms/Utils/BasicBlockUtils.h"
 #include "llvm/Transforms/Utils/Cloning.h"
@@ -34,7 +38,8 @@
 
 #include <cstddef>
 #include <cstdint>
-#include <llvm-14/llvm/ADT/None.h>
+#include <llvm-14/llvm/IR/DerivedTypes.h>
+#include <llvm-14/llvm/IR/Value.h>
 #include <tuple>
 #include <unordered_map>
 #include <utility>
@@ -131,9 +136,8 @@ public:
   void getAnalysisUsage(AnalysisUsage &AU) const override {
     AU.addRequired<TargetLibraryInfoWrapperPass>();
   }
-
-  // Function to check and populate SetMetaIndValues with legitimate indirect
-  // functions used.
+  // Function to check and populate SetMetaIndValues with legitimate
+  // indirect functions used.
   void checkIndFunction(Module &M) {
     for (auto &F : M) {
       for (Function::iterator FIt = F.begin(); FIt != F.end(); ++FIt) {
@@ -735,6 +739,18 @@ public:
     IRBuilder<> IRB(C);
     IRB.SetInsertPoint(insertPoint->getNextNode());
     Value *indexVal = ConstantInt::get(C, APInt(64, index, true));
+    Value *i32zero = ConstantInt::get(C, APInt(32, 0));
+    Value *indices[2] = {i32zero, i32zero};
+    // outs() << "-------------\n";
+    // V->getType()->getScalarType()->dump();
+    // V->getType()->dump();
+    // Ty->dump();
+    // Ty->getPointerTo()->dump();
+
+    // outs() << cast<PointerType>(V->getType()->getScalarType())
+    //               ->isOpaqueOrPointeeTypeMatches(Ty->getPointerTo())
+    //        << '\n';
+    // outs() << "-------------\n";
     return IRB.CreateInBoundsGEP(Ty, V, indexVal, "arrayidx");
   }
 
@@ -746,10 +762,16 @@ public:
   }
 
   Value *insertLoad(Instruction *insertPoint, Value *V) {
+    // outs() << insertPoint->getOpcodeName() << "\n";
+    // outs() << insertPoint->getNextNode()->getOpcodeName() << "\n";
+    // V->dump();
+    // V->getType()->dump();
+    // V->getType()->getPointerTo()->dump();
+    // V->getType()->getPointerElementType()->dump();
     LLVMContext &C = insertPoint->getFunction()->getContext();
     IRBuilder<> IRB(C);
     IRB.SetInsertPoint(insertPoint->getNextNode());
-    return IRB.CreateLoad(V->getType(), V, "gep_load");
+    return IRB.CreateLoad(V->getType()->getPointerElementType(), V, "gep_load");
   }
 
   void insertStructMemberGEP(Instruction *insertPoint, StructType *STy,
@@ -1635,7 +1657,9 @@ public:
                     if (ConstantInt *CI =
                             dyn_cast<ConstantInt>(GEPI->getOperand(1))) {
                       insertLibCallAuth(VLGI, I, AUTHPAC, CI->getZExtValue());
+                      insertLibCallAfter(VLGI, I, ADDPAC);
                       ++authPAC_count;
+                      ++addPAC_count;
                     }
                   }
                 }
@@ -1644,11 +1668,15 @@ public:
                   break;
                 } else {
                   insertLibCallAuth(V, I, AUTHPAC, 0);
+                  insertLibCallAfter(V, I, ADDPAC);
                   ++authPAC_count;
+                  ++addPAC_count;
                 }
               } else {
                 insertLibCallAuth(V, I, AUTHPAC, 0);
+                insertLibCallAfter(V, I, ADDPAC);
                 ++authPAC_count;
+                ++addPAC_count;
               }
 
               // Only for direct functions that have sensitive arguements
@@ -1675,7 +1703,9 @@ public:
                         dyn_cast<ConstantInt>(GEPArg->getOperand(1))) {
                   insertLibCallAuth(VGEPArg, I, AUTHPAC,
                                     ConstI->getZExtValue());
+                  insertLibCallAfter(VGEPArg, I, ADDPAC);
                   ++authPAC_count;
+                  ++addPAC_count;
                 }
               }
             }
@@ -2151,22 +2181,22 @@ public:
       }
     }
 
-    outs() << "PACPass Statistics\n";
-    printStat(outs(), addPAC_count);
-    printStat(outs(), authPAC_count);
-    printStat(outs(), setMeta_count);
-    printStat(outs(), removeMeta_count);
-    printStat(outs(), numStores);
-    printStat(outs(), numPACStores);
-    printStat(outs(), numLoads);
-    printStat(outs(), numPACLoads);
-    printStat(outs(), numMemcpy);
-    printStat(outs(), numPACMemcpy);
-    printStat(outs(), numAllocFree);
-    printStat(outs(), numPACAllocFree);
-    printStat(outs(), numInitStores);
-    printStat(outs(), numPACInitStores);
-    printStat(outs(), numReplace_count);
+    // outs() << "PACPass Statistics\n";
+    // printStat(outs(), addPAC_count);
+    // printStat(outs(), authPAC_count);
+    // printStat(outs(), setMeta_count);
+    // printStat(outs(), removeMeta_count);
+    // printStat(outs(), numStores);
+    // printStat(outs(), numPACStores);
+    // printStat(outs(), numLoads);
+    // printStat(outs(), numPACLoads);
+    // printStat(outs(), numMemcpy);
+    // printStat(outs(), numPACMemcpy);
+    // printStat(outs(), numAllocFree);
+    // printStat(outs(), numPACAllocFree);
+    // printStat(outs(), numInitStores);
+    // printStat(outs(), numPACInitStores);
+    // printStat(outs(), numReplace_count);
 
     return true;
   }
@@ -2204,3 +2234,21 @@ char PACPass::ID = 0;
 
 static RegisterPass<PACPass> X("PACPass", "PAC Pass implementation", false,
                                false);
+
+static void registerPACPass(const PassManagerBuilder &,
+                            legacy::PassManagerBase &PM) {
+  PM.add(new PACPass());
+}
+
+static RegisterStandardPasses
+    RegisterMyPass(PassManagerBuilder::EP_ModuleOptimizerEarly,
+                   registerPACPass);
+
+static RegisterStandardPasses
+    RegisterMyPass0(PassManagerBuilder::EP_EnabledOnOptLevel0, registerPACPass);
+// static void registerPACPass(const PassManagerBuilder &,
+//                             llvm::legacy::PassManagerBase &PM) {
+//   PM.add(new PACPass());
+// }
+// static RegisterStandardPasses
+//     RegisterPACPass(PassManagerBuilder::EP_EarlyAsPossible, registerPACPass);
